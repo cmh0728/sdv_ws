@@ -1,0 +1,20 @@
+name: sdv-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9                # Kuksa 공식 권장 버전
+  - pip
+  - nodejs                    # digital.auto Playground SDK, Ankaiois CLI를 위해
+  - grpcio                    # Kuksa gRPC 통신
+  - pyyaml
+  - requests
+  - jupyterlab                # 대시보드·실험용 노트북
+  - python-can                        # python-can (CAN 통신 테스트)
+  - cantools                   # CAN 메시지 분석
+  - pip:
+    - eclipse-kuksa-client     # Kuksa Python 클라이언트
+    - velocitas-client         # Velocitas SDK (PyPI 패키지 명칭 확인)
+    - digitalauto-sdk          # digital.auto Playground SDK
+    - ankaios-cli              # Ankaiois 명령줄 툴(만약 PyPI에 등록되어 있으면)
+

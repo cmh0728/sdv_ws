@@ -1,0 +1,5 @@
+브로커 시작 : 8080,55555포트로 api제공  --> 기본 명령어는 맥에서 버그생김. 아래걸로 하자 
+docker run -it --rm --net=host ghcr.io/eclipse-kuksa/kuksa-databroker:latest --port 55556 --insecure
+
+
+reference : https://eclipse-kuksa.github.io/kuksa-website/quickstart/?utm_source=chatgpt.com

@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  zenoh:
+    image: eclipse/zenoh:latest
+    command: ["-l", "tcp/0.0.0.0:7447"]
+    ports:
+      - "7447:7447"   # Zenoh TCP
+
+  kuksa:
+    image: ghcr.io/eclipse-kuksa/kuksa-databroker:latest
+    ports:
+      - "55556:55556" # gRPC
+    command: [
+      "/usr/bin/kuksa-databroker",
+      "--metadata", "/usr/src/app/vss.json",
+      "--address", "0.0.0.0:55556"
+    ]
