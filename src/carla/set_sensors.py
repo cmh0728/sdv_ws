@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import time
 import random
+import os, json, datetime
 
 # ====== 사용자 설정 ======
 SERVER_HOST = "localhost"   # Ubuntu CARLA 서버 IP
@@ -25,6 +26,10 @@ LIDAR_LOW_FOV = -30.0
 # BEV 미리보기 (라이다)
 BEV_SIZE = 800                     # 픽셀
 BEV_METERS = 80.0                  # ±40 m
+
+# 저장 폴더 
+SAVE_DIR = "sensor_poses"
+os.makedirs(SAVE_DIR, exist_ok=True)
 # ========================
 
 # 이동/회전 스텝
@@ -55,7 +60,8 @@ def put_hud(img, rel_tf, mode, imu_last):
         f"[T] control target: {mode.upper()}",
         f"[W/S,A/D,Z/X] xyz: ({loc.x:+.2f}, {loc.y:+.2f}, {loc.z:+.2f}) m",
         f"[J/L,I/K,U/O] rpy: (yaw {rot.yaw:+.1f}, pitch {rot.pitch:+.1f}, roll {rot.roll:+.1f}) deg",
-        "[0] reset  [P] save frame  [Q] quit",
+        "[S] save poses  [R] reload last poses",
+        "[0] reset current  [P] save frame  [Q] quit",
     ]
     if imu_last is not None:
         ax, ay, az, gx, gy, gz, comp = imu_last
@@ -75,25 +81,36 @@ def bev_from_lidar(points_xyz):
     half = BEV_SIZE // 2
     res = (BEV_METERS / 2) / half  # meters per pixel
 
-    # clip to range
     x = points_xyz[:, 0]
     y = points_xyz[:, 1]
     m = (np.abs(x) < BEV_METERS/2) & (np.abs(y) < BEV_METERS/2)
     x = x[m]; y = y[m]
 
-    # map to pixels
     u = (x / res + half).astype(np.int32)
     v = (y / res + half).astype(np.int32)
 
     valid = (u >= 0) & (u < BEV_SIZE) & (v >= 0) & (v < BEV_SIZE)
     bev[u[valid], v[valid]] = 255
 
-    # rotate image so forward is up if you prefer:
     bev = cv2.rotate(bev, cv2.ROTATE_90_COUNTERCLOCKWISE)
     bev = cv2.flip(bev, 0)
     bev_bgr = cv2.cvtColor(bev, cv2.COLOR_GRAY2BGR)
     cv2.putText(bev_bgr, "LiDAR BEV (±40m)", (10, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
     return bev_bgr
+
+# --- 포즈 직렬화/복원 ---
+def tf_to_dict(tf: carla.Transform):
+    return {
+        "location": {"x": tf.location.x, "y": tf.location.y, "z": tf.location.z},
+        "rotation": {"yaw": tf.rotation.yaw, "pitch": tf.rotation.pitch, "roll": tf.rotation.roll}
+    }
+
+def dict_to_tf(d):
+    loc = d["location"]; rot = d["rotation"]
+    return carla.Transform(
+        carla.Location(x=loc["x"], y=loc["y"], z=loc["z"]),
+        carla.Rotation(yaw=rot["yaw"], pitch=rot["pitch"], roll=rot["roll"])
+    )
 
 def main():
     client = carla.Client(SERVER_HOST, SERVER_PORT)
@@ -115,7 +132,7 @@ def main():
     safe_set_attr(cam_bp, "image_size_x", IMG_W)
     safe_set_attr(cam_bp, "image_size_y", IMG_H)
     safe_set_attr(cam_bp, "fov", FOV)
-    safe_set_attr(cam_bp, "sensor_tick", 0.0)  # as fast as possible
+    safe_set_attr(cam_bp, "sensor_tick", 0.0)
 
     rel_tf_cam = carla.Transform(
         carla.Location(x=1.5, y=0.0, z=1.5),
@@ -132,7 +149,6 @@ def main():
     safe_set_attr(lidar_bp, "range", LIDAR_RANGE)
     safe_set_attr(lidar_bp, "upper_fov", LIDAR_UP_FOV)
     safe_set_attr(lidar_bp, "lower_fov", LIDAR_LOW_FOV)
-    # 옵션(있을 때만 적용)
     safe_set_attr(lidar_bp, "noise_stddev", 0.0)
     safe_set_attr(lidar_bp, "dropoff_general_rate", 0.0)
     safe_set_attr(lidar_bp, "dropoff_intensity_limit", 1.0)
@@ -148,10 +164,9 @@ def main():
 
     # ---- IMU ----
     imu_bp = bp_lib.find("sensor.other.imu")
-    # 필요시 노이즈 설정 (값이 있으면)
     safe_set_attr(imu_bp, "sensor_tick", 0.02)  # 50Hz
-    imu = world.spawn_actor(imu_bp, carla.Transform(
-        carla.Location(x=0.0, y=0.0, z=1.2)), attach_to=vehicle)
+    rel_tf_imu = carla.Transform(carla.Location(x=0.0, y=0.0, z=1.2))
+    imu = world.spawn_actor(imu_bp, rel_tf_imu, attach_to=vehicle)
     print("IMU attached:", imu.type_id)
 
     # ---- Callbacks ----
@@ -164,7 +179,6 @@ def main():
         last_cam["frame_id"] = image.frame
 
     def on_lidar(meas: carla.LidarMeasurement):
-        # raw: float32 [x,y,z, intensity]
         pts = np.frombuffer(meas.raw_data, dtype=np.float32).reshape(-1, 4)[:, :3]
         last_bev["img"] = bev_from_lidar(pts)
 
@@ -189,7 +203,8 @@ def main():
 [T] toggle control target (CAMERA/LIDAR)
 Move:     W/S = +x/-x   A/D = -y/+y   Z/X = -z/+z
 Rotate:   J/L = -yaw/+yaw   I/K = +pitch/-pitch   U/O = -roll/+roll
-Others:   0 = reset   P = save camera frame   Q = quit
+[S] save poses to JSON  [R] reload last JSON
+[0] reset current target  [P] save camera frame  [Q] quit
 Note: x=forward(+), y=right(+), z=up(+)
 """)
 
@@ -200,6 +215,7 @@ Note: x=forward(+), y=right(+), z=up(+)
 
     control_target = "camera"  # or "lidar"
     last_save_t = 0.0
+    last_pose_path = None
 
     try:
         while True:
@@ -208,8 +224,8 @@ Note: x=forward(+), y=right(+), z=up(+)
             imu_vals = imu_last["vals"]
 
             if cam_img is not None:
-                hud_img = cam_img.copy()
                 tf = rel_tf_cam if control_target == "camera" else rel_tf_lidar
+                hud_img = cam_img.copy()
                 put_hud(hud_img, tf, control_target, imu_vals)
                 cv2.imshow("CARLA Camera", hud_img)
 
@@ -251,11 +267,44 @@ Note: x=forward(+), y=right(+), z=up(+)
                         rel_tf_lidar.rotation = carla.Rotation(pitch=0.0, yaw=0.0, roll=0.0)
                     print(f"{control_target} transform reset.")
 
-                # 저장 (카메라 프레임)
+                # 포즈 저장 (S)
+                elif key == ord('s'):
+                    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+                    path = os.path.join(SAVE_DIR, f"poses_{ts}.json")
+                    data = {
+                        "timestamp": ts,
+                        "town": TOWN,
+                        "vehicle": VEHICLE_BP_ID,
+                        "camera": tf_to_dict(rel_tf_cam),
+                        "lidar":  tf_to_dict(rel_tf_lidar),
+                        "imu":    tf_to_dict(rel_tf_imu),
+                        "note": "Transforms are relative to vehicle (attach_to=vehicle). Units: meters, degrees."
+                    }
+                    with open(path, "w") as f:
+                        json.dump(data, f, indent=2)
+                    last_pose_path = path
+                    print("Saved sensor poses →", path)
+
+                # 최근 포즈 로드 (R)
+                elif key == ord('r'):
+                    if last_pose_path and os.path.exists(last_pose_path):
+                        with open(last_pose_path) as f:
+                            data = json.load(f)
+                        rel_tf_cam   = dict_to_tf(data["camera"])
+                        rel_tf_lidar = dict_to_tf(data["lidar"])
+                        rel_tf_imu   = dict_to_tf(data["imu"])
+                        camera.set_transform(rel_tf_cam)
+                        lidar.set_transform(rel_tf_lidar)
+                        imu.set_transform(rel_tf_imu)
+                        print("Loaded sensor poses ←", last_pose_path)
+                    else:
+                        print("No saved pose to load yet.")
+
+                # 카메라 프레임 저장 (P) - 필요 시 유지
                 elif key == ord('p'):
                     now = time.time()
                     if cam_img is not None and now - last_save_t > 0.5:
-                        fname = f"carla_cam_{last_cam['frame_id']}.png"
+                        fname = f"carla_cam_{int(now)}.png"
                         cv2.imwrite(fname, cam_img)
                         last_save_t = now
                         print("Saved:", fname)

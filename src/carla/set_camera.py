@@ -114,7 +114,8 @@ def main():
             Others:   0 = reset   P = save frame   Q = quit
             Note: x=forward(+), y=right(+), z=up(+)
             """)
-    # 트럭 기준 카메라 위치 x : +3.5, y : 0, z : +3 
+    
+    # 트럭 기준 카메라 위치 x : +3.6, y : 0, z : +3 
     # 카메라 좌표계 앞이 x 오른쪽이 y 위쪽이 z
     cv2.namedWindow("CARLA Camera", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("CARLA Camera", 960, 540)
