@@ -11,7 +11,7 @@ import random
 SERVER_HOST = "localhost"  # Ubuntu CARLA 서버 IP로 변경
 SERVER_PORT = 2000            # 서버 포트(기본 2000)
 TOWN = "Town03"
-VEHICLE_BP_ID = "vehicle.mini.cooper_s"
+VEHICLE_BP_ID = "vehicle.carlamotors.european_hgv"
 
 # 센서 해상도/FOV
 IMG_W, IMG_H = 1280, 720
