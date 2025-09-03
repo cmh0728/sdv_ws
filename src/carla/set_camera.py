@@ -8,7 +8,7 @@ import time
 import random
 
 # ====== 사용자 설정 ======
-SERVER_HOST = "192.168.86.74"  # Ubuntu CARLA 서버 IP로 변경
+SERVER_HOST = "localhost"  # Ubuntu CARLA 서버 IP로 변경
 SERVER_PORT = 2000            # 서버 포트(기본 2000)
 TOWN = "Town03"
 VEHICLE_BP_ID = "vehicle.carlamotors.european_hgv"
