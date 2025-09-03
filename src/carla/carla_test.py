@@ -7,5 +7,5 @@ def main():
     world = client.get_world()
     print('sucess to connect server with client')
 
-if __name__ == "main":
+if __name__ == "__main__":
     main()
