@@ -8,7 +8,7 @@ import time
 import random
 
 # ====== 사용자 설정 ======
-SERVER_HOST = "localhost"  # Ubuntu CARLA 서버 IP로 변경
+SERVER_HOST = "192.168.86.74"  # Ubuntu CARLA 서버 IP로 변경
 SERVER_PORT = 2000            # 서버 포트(기본 2000)
 TOWN = "Town03"
 VEHICLE_BP_ID = "vehicle.carlamotors.european_hgv"
@@ -108,13 +108,14 @@ def main():
     ))
 
     print("""
-=== Controls ===
-Move:     W/S = +x/-x   A/D = -y/+y   Z/X = -z/+z
-Rotate:   J/L = -yaw/+yaw   I/K = +pitch/-pitch   U/O = -roll/+roll
-Others:   0 = reset   P = save frame   Q = quit
-Note: x=forward(+), y=right(+), z=up(+)
-""")
-
+            === Controls ===
+            Move:     W/S = +x/-x   A/D = -y/+y   Z/X = -z/+z
+            Rotate:   J/L = -yaw/+yaw   I/K = +pitch/-pitch   U/O = -roll/+roll
+            Others:   0 = reset   P = save frame   Q = quit
+            Note: x=forward(+), y=right(+), z=up(+)
+            """)
+    # 트럭 기준 카메라 위치 x : +3.5, y : 0, z : +3 
+    # 카메라 좌표계 앞이 x 오른쪽이 y 위쪽이 z
     cv2.namedWindow("CARLA Camera", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("CARLA Camera", 960, 540)
 
