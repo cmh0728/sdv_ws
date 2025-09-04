@@ -1,0 +1,42 @@
+{
+  "timestamp": "20250904-103108",
+  "town": "Town03",
+  "vehicle": "vehicle.carlamotors.european_hgv",
+  "camera": {
+    "location": {
+      "x": 3.5999984741210938,
+      "y": 0.0,
+      "z": 2.9999990463256836
+    },
+    "rotation": {
+      "yaw": 0.0,
+      "pitch": 0.0,
+      "roll": 0.0
+    }
+  },
+  "lidar": {
+    "location": {
+      "x": 3.599998950958252,
+      "y": 0.0,
+      "z": 4.299998760223389
+    },
+    "rotation": {
+      "yaw": 0.0,
+      "pitch": 0.0,
+      "roll": 0.0
+    }
+  },
+  "imu": {
+    "location": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 1.2000000476837158
+    },
+    "rotation": {
+      "yaw": 0.0,
+      "pitch": 0.0,
+      "roll": 0.0
+    }
+  },
+  "note": "Transforms are relative to the vehicle (attach_to=vehicle). Units: meters, degrees."
+}
