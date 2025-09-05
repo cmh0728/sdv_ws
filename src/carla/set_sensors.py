@@ -464,7 +464,7 @@ class CarlaSensorApp:
             self.setup_windows()
 
             while True:
-                self.update_display()
+                self.update_display() # show windows
                 line = stdin_readline_nonblocking()
                 if line is None:
                     continue
